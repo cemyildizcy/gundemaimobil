@@ -34,6 +34,7 @@ jobs:
     - name: Create local.properties & Setup Secrets
       run: |
         echo "sdk.dir=$ANDROID_HOME" > local.properties
+        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
         echo "GNEWS_API_KEY=${{ secrets.GNEWS_API_KEY }}" >> local.properties
         echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> local.properties
