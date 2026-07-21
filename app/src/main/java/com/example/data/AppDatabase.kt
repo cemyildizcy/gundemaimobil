@@ -32,10 +32,10 @@ interface StoryDao {
     @Update
     suspend fun updateStory(story: StoryEntity)
 
-    @Query("SELECT * FROM stories ORDER BY lastTimestamp DESC")
+    @Query("SELECT * FROM stories ORDER BY timestamp DESC")
     fun getAllLiveStories(): Flow<List<StoryEntity>>
 
-    @Query("SELECT * FROM stories WHERE lastTimestamp > :timeThreshold ORDER BY lastTimestamp DESC")
+    @Query("SELECT * FROM stories WHERE timestamp > :timeThreshold ORDER BY timestamp DESC")
     suspend fun getRecentStoriesForClustering(timeThreshold: Long): List<StoryEntity>
     
     @Query("SELECT * FROM stories WHERE id = :id LIMIT 1")
@@ -50,13 +50,13 @@ interface TimelineDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTimeline(item: StoryTimelineEntity)
 
-    @Query("SELECT * FROM story_timelines WHERE storyId = :storyId ORDER BY epochTime ASC")
+    @Query("SELECT * FROM story_timeline WHERE storyId = :storyId ORDER BY time ASC")
     fun getTimelinesForStory(storyId: String): Flow<List<StoryTimelineEntity>>
     
-    @Query("SELECT * FROM story_timelines WHERE storyId = :storyId ORDER BY epochTime ASC")
+    @Query("SELECT * FROM story_timeline WHERE storyId = :storyId ORDER BY time ASC")
     suspend fun getTimelinesForStorySync(storyId: String): List<StoryTimelineEntity>
 
-    @Query("DELETE FROM story_timelines")
+    @Query("DELETE FROM story_timeline")
     suspend fun clearAllTimelines()
 }
 
