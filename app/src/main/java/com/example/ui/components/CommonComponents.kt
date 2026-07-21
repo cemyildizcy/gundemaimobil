@@ -138,6 +138,7 @@ fun PlatformIcon(platform: PlatformType, modifier: Modifier = Modifier) {
         PlatformType.BLOG -> Pair("Bl", Color(0xFFF59E0B))
         PlatformType.NEWS -> Pair("Hbr", Color(0xFF3B82F6))
         PlatformType.OFFICIAL -> Pair("KAP", Color(0xFF10B981))
+        PlatformType.TELEGRAM -> Pair("TG", Color(0xFF0088CC))
     }
 
     Box(

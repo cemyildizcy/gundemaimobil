@@ -1,5 +1,8 @@
 package com.example.data
 
+import com.example.data.Topic
+import com.example.data.Source
+
 object MockData {
     val topics = listOf(
         Topic("yapay_zeka", "Yapay Zekâ", "psychology"),

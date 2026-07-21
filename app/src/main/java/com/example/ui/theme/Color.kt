@@ -2,10 +2,9 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-
-// Geometric Balance X/Instagram Lights-Out Aesthetic Colors
 import androidx.compose.material3.MaterialTheme
 
+// Geometric Balance X/Instagram Lights-Out Aesthetic Colors
 val DarkBackground = Color(0xFF000000)
 val DarkSurface = Color(0xFF0D121F)
 val DarkSurfaceVariant = Color(0xFF16223F)
@@ -39,8 +38,6 @@ val LightTextPrimary = Color(0xFF0F1419)
 val LightTextSecondary = Color(0xFF536471)
 
 // Helper States
-import androidx.compose.ui.graphics.Color
-
 val PremiumGold = Color(0xFFFFD700)
 val AlertBlue = Color(0xFF3B82F6)
 val SoftGray = Color(0xFF2F3336)

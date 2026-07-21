@@ -15,7 +15,7 @@ data class ChatMessage(
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getInstance(application)
+    private val db = AppDatabase.getDatabase(application)
     private val dao = db.dao()
     private val prefsManager = PreferencesManager(application)
     private val geminiService = GeminiService()
@@ -25,13 +25,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // DB state observers
     private val savedStoryIds = dao.getSavedStories().map { list -> list.map { it.id }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
     private val followedSourceIds = dao.getFollowedSources().map { list -> list.map { it.id }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
     private val followedPackageIds = dao.getFollowedPackages().map { list -> list.map { it.id }.toSet() }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
     val notifications: StateFlow<List<NotificationEntity>> = dao.getNotifications()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
