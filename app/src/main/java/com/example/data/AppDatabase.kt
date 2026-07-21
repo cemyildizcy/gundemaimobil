@@ -76,15 +76,14 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "gundem_ai_database"
-                )
-                .fallbackToDestructiveMigration()
-                .build()
-                INSTANCE = instance
+                    return INSTANCE ?: synchronized(this) {
+                        val instance = Room.databaseBuilder(
+                            context.applicationContext,
+                            AppDatabase::class.java,
+                            "gundem_ai_database"
+                        )
+                        .build()
+                        INSTANCE = instance
                 instance
             }
         }

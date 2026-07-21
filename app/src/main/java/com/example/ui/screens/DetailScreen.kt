@@ -100,7 +100,12 @@ fun DetailScreen(
                     }
 
                     IconButton(onClick = {
-                        Toast.makeText(context, "Bağlantı kopyalandı!", Toast.LENGTH_SHORT).show()
+                        val shareIntent = android.content.Intent().apply {
+                            action = android.content.Intent.ACTION_SEND
+                            putExtra(android.content.Intent.EXTRA_TEXT, "${story.title}\n${story.originalUrl}\n\nGündemAI aracılığıyla paylaşıldı.")
+                            type = "text/plain"
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Haberi Paylaş"))
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Paylaş")
                     }

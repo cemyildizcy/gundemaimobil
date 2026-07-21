@@ -6,8 +6,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+
 class PreferencesManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("gundem_ai_prefs", Context.MODE_PRIVATE)
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
+        "gundem_ai_prefs",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     private val _preferencesFlow = MutableStateFlow(getPreferences())
     val preferencesFlow: StateFlow<UserPreferences> = _preferencesFlow.asStateFlow()

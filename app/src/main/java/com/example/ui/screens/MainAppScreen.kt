@@ -34,6 +34,8 @@ import com.example.ui.components.*
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
+import androidx.activity.compose.BackHandler
+
 @Composable
 fun MainAppScreen(
     viewModel: MainViewModel,
@@ -43,6 +45,15 @@ fun MainAppScreen(
     var activeStoryId by remember { mutableStateOf<String?>(null) }
     var isChatbotOpen by remember { mutableStateOf(false) }
     var isSummaryOpen by remember { mutableStateOf(false) }
+
+    // Handle System Back Button
+    BackHandler(enabled = activeStoryId != null || isChatbotOpen || isSummaryOpen) {
+        when {
+            isSummaryOpen -> isSummaryOpen = false
+            isChatbotOpen -> isChatbotOpen = false
+            activeStoryId != null -> activeStoryId = null
+        }
+    }
 
     val stories by viewModel.stories.collectAsState()
     val preferences by viewModel.preferences.collectAsState()
@@ -56,7 +67,7 @@ fun MainAppScreen(
             bottomBar = {
                 // Sleek X/Instagram-style ultra-thin bottom navigation
                 Surface(
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
                         .fillMaxWidth()
                         .drawBehind {
@@ -234,10 +245,8 @@ fun GundemTab(
                 "Doğrulananlar" -> story.status == VerificationStatus.VERIFIED || story.status == VerificationStatus.OFFICIAL_STATEMENT
                 "En Önemli" -> story.importance == ImportanceLevel.CRITICAL || story.importance == ImportanceLevel.HIGH
                 "Sadece takip ettiklerim" -> {
-                    // Check if story contains any followed source relations
-                    val relevantSources = MockData.storySourceRelations.filter { it.storyId == story.id }.map { it.sourceId }
-                    val followedIds = followedSourceIds.filter { it.isFollowing }.map { it.id }.toSet()
-                    relevantSources.any { followedIds.contains(it) }
+                    val followedNames = followedSourceIds.filter { it.isFollowing }.map { it.name.lowercase() }.toSet()
+                    followedNames.any { story.sourceName.lowercase().contains(it) || it.contains(story.sourceName.lowercase()) }
                 }
                 else -> true // En Yeni is default
             }
@@ -626,24 +635,24 @@ fun StoryCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF090E1A).copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .drawBehind {
                             val strokeWidth = 4.dp.toPx()
                             drawLine(
                                 color = Color(0xFF3B82F6),
                                 start = androidx.compose.ui.geometry.Offset(strokeWidth / 2, 0f),
-                                end = androidx.compose.ui.geometry.Offset(strokeWidth / 2, this.size.height),
+                                end = androidx.compose.ui.geometry.Offset(strokeWidth / 2, size.height),
                                 strokeWidth = strokeWidth
                             )
                         }
                         .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 12.dp)
                 ) {
                     Text(
-                        text = "\"${story.summary}\"",
-                        fontSize = 12.sp,
-                        color = Color(0xFFCBD5E1),
-                        lineHeight = 18.sp,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        text = story.summary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -720,7 +729,12 @@ fun StoryCard(
 
                         IconButton(
                             onClick = {
-                                Toast.makeText(context, "Haber Paylaşıldı: ${story.title}", Toast.LENGTH_SHORT).show()
+                                val shareIntent = android.content.Intent().apply {
+                                    action = android.content.Intent.ACTION_SEND
+                                    putExtra(android.content.Intent.EXTRA_TEXT, "${story.title}\n${story.originalUrl}\n\nGündemAI aracılığıyla paylaşıldı.")
+                                    type = "text/plain"
+                                }
+                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Haberi Paylaş"))
                             },
                             modifier = Modifier.size(32.dp)
                         ) {

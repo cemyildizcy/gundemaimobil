@@ -4,15 +4,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 
 // Geometric Balance X/Instagram Lights-Out Aesthetic Colors
-val DarkBackground = Color(0xFF000000)    // Pure lights-out OLED black
-val DarkSurface = Color(0xFF0D121F)       // Extremely dark slate/indigo for main card containers
-val DarkSurfaceVariant = Color(0xFF16223F) // Muted deep indigo/slate for inner containers / inputs
-val DarkPrimary = Color(0xFF1D9BF0)       // Modern Twitter Electric Blue
-val DarkSecondary = Color(0xFFF91880)     // Premium Instagram Magenta/Pink accent
-val DarkTertiary = Color(0xFF00BA7C)      // Modern Green (Success/Verified)
-val DarkError = Color(0xFFF4212E)         // Alert Red
-val DarkTextPrimary = Color(0xFFE7E9EA)   // High-contrast clean silver-white
-val DarkTextSecondary = Color(0xFF71767B) // Muted elegant grey
+import androidx.compose.material3.MaterialTheme
+
+val DarkBackground = Color(0xFF000000)
+val DarkSurface = Color(0xFF0D121F)
+val DarkSurfaceVariant = Color(0xFF16223F)
+val DarkPrimary = Color(0xFF1D9BF0)
+val DarkSecondary = Color(0xFFF91880)
+val DarkTertiary = Color(0xFF00BA7C)
+val DarkError = Color(0xFFF4212E)
+val DarkTextPrimary = Color(0xFFE7E9EA)
+val DarkTextSecondary = Color(0xFF71767B)
 
 // Gradients
 val BrandGradient = Brush.linearGradient(
@@ -37,6 +39,8 @@ val LightTextPrimary = Color(0xFF0F1419)
 val LightTextSecondary = Color(0xFF536471)
 
 // Helper States
-val PremiumGold = Color(0xFFFFD700)       // Rich gold for premium elements
-val AlertBlue = Color(0xFF3B82F6)         // Accent electric blue
-val SoftGray = Color(0xFF2F3336)          // Thin border grey for list items
+import androidx.compose.ui.graphics.Color
+
+val PremiumGold = Color(0xFFFFD700)
+val AlertBlue = Color(0xFF3B82F6)
+val SoftGray = Color(0xFF2F3336)

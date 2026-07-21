@@ -27,10 +27,7 @@ class GeminiService {
             ""
         }
 
-        // Detect if key is placeholder or empty
-        val isKeyPlaceholder = apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY" || apiKey.contains("placeholder", ignoreCase = true)
-
-        if (isKeyPlaceholder) {
+        if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY" || apiKey.contains("placeholder", ignoreCase = true)) {
             Log.d("GeminiService", "Gemini API key is placeholder or empty. Using smart local Turkish fallback.")
             return@withContext getLocalFallbackResponse(prompt, contextStories)
         }
@@ -100,11 +97,12 @@ class GeminiService {
             val requestBody = requestBodyJson.toString().toRequestBody(mediaType)
 
             // We use 'gemini-1.5-flash' for cost efficiency and basic Q&A
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
-
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        
             val request = Request.Builder()
                 .url(url)
                 .post(requestBody)
+                .header("x-goog-api-key", apiKey)
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -284,10 +282,7 @@ class GeminiService {
             ""
         }
 
-        // Detect if key is placeholder or empty
-        val isKeyPlaceholder = apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY" || apiKey.contains("placeholder", ignoreCase = true)
-
-        if (isKeyPlaceholder) {
+        if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY" || apiKey.contains("placeholder", ignoreCase = true)) {
             return@withContext getLocalFallbackEnrichment(title, category, sourceName)
         }
 
@@ -348,11 +343,12 @@ class GeminiService {
             val mediaType = "application/json; charset=utf-8".toMediaType()
             val requestBody = requestBodyJson.toString().toRequestBody(mediaType)
 
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
-
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        
             val request = Request.Builder()
                 .url(url)
                 .post(requestBody)
+                .header("x-goog-api-key", apiKey)
                 .build()
 
             client.newCall(request).execute().use { response ->

@@ -68,15 +68,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val packages: StateFlow<List<GundemPackage>> = combine(followedPackageIds) { followedIds ->
+    val packages: StateFlow<List<GundemPackage>> = followedPackageIds.map { followedIds ->
         MockData.gundemPackages.map { pkg ->
-            pkg.copy(isFollowing = followedIds[0].contains(pkg.id))
+            pkg.copy(isFollowing = followedIds.contains(pkg.id))
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MockData.gundemPackages)
 
-    val sources: StateFlow<List<Source>> = combine(followedSourceIds) { followedIds ->
+    val sources: StateFlow<List<Source>> = followedSourceIds.map { followedIds ->
         MockData.sources.map { src ->
-            src.copy(isFollowing = followedIds[0].contains(src.id))
+            src.copy(isFollowing = followedIds.contains(src.id))
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MockData.sources)
 

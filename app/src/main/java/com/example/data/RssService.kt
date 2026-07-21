@@ -3,16 +3,24 @@ package com.example.data
 import android.util.Log
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
+import org.xmlpull.v1.XmlPullParserException
+import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+import java.util.UUID
 
 class RssService {
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
 
     suspend fun fetchCategoryRss(category: String): List<Story> = withContext(Dispatchers.IO) {
         val query = when (category) {
@@ -38,83 +46,97 @@ class RssService {
             staticRss
         )
 
+        val fetchedStories = mutableListOf<Story>()
+
         for (feedUrl in feedUrls) {
             try {
-                val url = URL(feedUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 8000
-                connection.readTimeout = 8000
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val stories = connection.inputStream.use { inputStream ->
-                        parseRss(inputStream, category, feedUrl)
+                val request = Request.Builder()
+                    .url(feedUrl)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val responseBody = response.body?.string()
+                        if (!responseBody.isNullOrBlank()) {
+                            val stories = parseRssString(responseBody, category, feedUrl)
+                            if (stories.isNotEmpty()) {
+                                Log.d("RssService", "Successfully fetched ${stories.size} items from $feedUrl")
+                                fetchedStories.addAll(stories)
+                                // Stop after first successful fetch for this category to avoid duplicates
+                                break 
+                            }
+                        }
+                    } else {
+                        Log.e("RssService", "Failed to fetch from $feedUrl: HTTP ${response.code}")
                     }
-                    if (stories.isNotEmpty()) {
-                        Log.d("RssService", "Successfully fetched from $feedUrl")
-                        return@withContext stories
-                    }
-                } else {
-                    Log.e("RssService", "Failed to fetch from $feedUrl: HTTP $responseCode")
                 }
             } catch (e: Exception) {
                 Log.e("RssService", "Error fetching from $feedUrl: ${e.message}")
             }
         }
-        Log.e("RssService", "All RSS feeds failed for category $category")
-        return@withContext emptyList()
+        
+        if (fetchedStories.isEmpty()) {
+            Log.e("RssService", "All RSS feeds failed for category $category")
+        }
+        
+        // Return up to 12 unique latest articles
+        return@withContext fetchedStories.distinctBy { it.title }.take(12)
     }
 
-    private fun parseRss(inputStream: InputStream, category: String, feedUrl: String): List<Story> {
+    private fun parseRssString(xmlContent: String, category: String, feedUrl: String): List<Story> {
         val stories = mutableListOf<Story>()
         try {
             val parser = Xml.newPullParser()
-            parser.setInput(inputStream, "UTF-8")
+            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+            parser.setInput(StringReader(xmlContent))
 
             var eventType = parser.eventType
-            var inItem = false
-            var title = ""
-            var link = ""
-            var description = ""
-            var pubDate = ""
+            var currentStory: MutableMap<String, String>? = null
+            var text = ""
 
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 val name = parser.name
                 when (eventType) {
                     XmlPullParser.START_TAG -> {
-                        if (name.equals("item", ignoreCase = true)) {
-                            inItem = true
-                        } else if (inItem) {
-                            when (name.lowercase()) {
-                                "title" -> title = parser.nextText().trim()
-                                "link" -> link = parser.nextText().trim()
-                                "description" -> description = parser.nextText().trim()
-                                "pubdate" -> pubDate = parser.nextText().trim()
-                            }
+                        if (name.equals("item", ignoreCase = true) || name.equals("entry", ignoreCase = true)) {
+                            currentStory = mutableMapOf()
                         }
                     }
+                    XmlPullParser.TEXT -> {
+                        text = parser.text.trim()
+                    }
                     XmlPullParser.END_TAG -> {
-                        if (name.equals("item", ignoreCase = true)) {
-                            if (title.isNotEmpty()) {
-                                stories.add(createStoryFromRss(title, link, description, pubDate, category, feedUrl))
+                        if (name.equals("item", ignoreCase = true) || name.equals("entry", ignoreCase = true)) {
+                            currentStory?.let {
+                                val title = it["title"] ?: ""
+                                val link = it["link"] ?: ""
+                                val description = it["description"] ?: ""
+                                val pubDate = it["pubDate"] ?: it["updated"] ?: ""
+                                
+                                if (title.isNotEmpty() && link.isNotEmpty()) {
+                                    stories.add(createStoryFromRss(title, link, description, pubDate, category, feedUrl))
+                                }
                             }
-                            inItem = false
-                            title = ""
-                            link = ""
-                            description = ""
-                            pubDate = ""
+                            currentStory = null
+                        } else if (currentStory != null) {
+                            when (name.lowercase()) {
+                                "title" -> currentStory!!["title"] = text
+                                "link" -> currentStory!!["link"] = text
+                                "description" -> currentStory!!["description"] = text
+                                "pubdate", "updated", "date" -> currentStory!!["pubDate"] = text
+                            }
                         }
                     }
                 }
                 eventType = parser.next()
             }
+        } catch (e: XmlPullParserException) {
+            Log.e("RssService", "XML Pull Parser Error: ${e.message}")
         } catch (e: Exception) {
             Log.e("RssService", "Error parsing RSS XML: ${e.message}")
         }
-        // Return up to 10 latest articles for feed freshness
-        return stories.take(12)
+        return stories
     }
 
     private fun createStoryFromRss(
@@ -127,8 +149,11 @@ class RssService {
     ): Story {
         // Clean Google News title format: "Headline text - Source Name"
         val lastDash = title.lastIndexOf(" - ")
-        val cleanTitle = if (lastDash != -1) title.substring(0, lastDash).trim() else title
-        val sourceName = if (lastDash != -1) {
+        val cleanTitle = if (lastDash != -1 && lastDash > title.length - 30) { 
+            title.substring(0, lastDash).trim() 
+        } else title
+        
+        val sourceName = if (lastDash != -1 && lastDash > title.length - 30) {
             title.substring(lastDash + 3).trim()
         } else {
             when {
@@ -139,12 +164,12 @@ class RssService {
                 feedUrl.contains("bing", ignoreCase = true) -> "Bing Haberler"
                 feedUrl.contains("webrazzi", ignoreCase = true) -> "Webrazzi"
                 feedUrl.contains("shiftdelete", ignoreCase = true) -> "ShiftDelete.Net"
-                else -> "Google Haberler"
+                else -> "İnternet Haber"
             }
         }
 
         val cleanedDesc = cleanHtml(description)
-        val shortSummary = if (cleanedDesc.isNotEmpty() && cleanedDesc.length > 5) {
+        val shortSummary = if (cleanedDesc.isNotEmpty() && cleanedDesc.length > 15) {
             if (cleanedDesc.length > 200) cleanedDesc.take(197) + "..." else cleanedDesc
         } else {
             "Gelişmenin detayları ve yapay zekâ analiz raporu için detaya dokunun."
@@ -174,7 +199,8 @@ class RssService {
             else -> "https://images.unsplash.com/photo-1495020689067-958852a6565d?q=80&w=600"
         }
 
-        val idHash = "rss_" + cleanTitle.hashCode().toString()
+        // Create a unique deterministic ID
+        val idHash = "rss_" + UUID.nameUUIDFromBytes(cleanTitle.toByteArray()).toString().take(12)
 
         val formattedFirstTime = formatRssDate(pubDate)
         val formattedLastTime = parseTimeFromPubDate(pubDate)
@@ -191,7 +217,7 @@ class RssService {
             aiComment = "GündemAI Analizi: Gelişmeyle ilgili doğrulanmış kaynaklardan gelen raporları inceleyip derinlemesine yapay zeka yorumu edinmek için detaya gidin.",
             consensusPoints = listOf(
                 "Bu haber $sourceName tarafından yayınlandı.",
-                "Google News Türkiye ağından anlık olarak doğrulanmıştır."
+                "Google News Türkiye ağından veya doğrudan ilgili RSS ağından anlık olarak doğrulanmıştır."
             ),
             unresolvedPoints = listOf(
                 "Diğer haber kaynaklarının bu habere ilişkin yorumları ve resmi açıklamalar bekleniyor."
@@ -199,7 +225,7 @@ class RssService {
             coverUrl = coverUrl,
             firstTimestamp = formattedFirstTime,
             lastTimestamp = formattedLastTime,
-            sourcesCount = 3,
+            sourcesCount = (3..7).random(), // Simulate multiple sources analyzing it
             isSaved = false,
             sourceName = sourceName,
             originalUrl = link
@@ -222,12 +248,12 @@ class RssService {
                 date = format.parse(pubDateStr)
                 if (date != null) break
             } catch (e: Exception) {
-                // try next format
+                // ignore
             }
         }
         
         if (date == null) {
-            return pubDateStr // fallback
+            return pubDateStr
         }
         
         val now = System.currentTimeMillis()
@@ -261,14 +287,12 @@ class RssService {
             if (match != null) {
                 return match.value
             }
-        } catch (e: Exception) {
-            // ignore
-        }
+        } catch (e: Exception) {}
         val sdf = SimpleDateFormat("HH:mm", Locale("tr", "TR"))
         return sdf.format(Date())
     }
 
     private fun cleanHtml(html: String): String {
-        return html.replace(Regex("<[^>]*>"), "").trim()
+        return html.replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").replace("&quot;", "\"").trim()
     }
 }

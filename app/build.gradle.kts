@@ -10,13 +10,13 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
-  compileSdk { version = release(36) { minorApiLevel = 1 } }
+  namespace = "com.aistudio.gundemai.vkyzq"
+    compileSdk = 34
 
-  defaultConfig {
-    applicationId = "com.aistudio.gundemai.vkyzq"
-    minSdk = 24
-    targetSdk = 36
+    defaultConfig {
+      applicationId = "com.aistudio.gundemai.vkyzq"
+      minSdk = 24
+      targetSdk = 34
     versionCode = 1
     versionName = "1.0"
 
@@ -32,20 +32,20 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-    }
+          storeFile = file("${rootDir}/debug.keystore")
+          storePassword = System.getenv("DEBUG_STORE_PASSWORD") ?: "android"
+          keyAlias = "androiddebugkey"
+          keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
+        }
   }
 
   buildTypes {
-    release {
-      isCrunchPngs = false
-      isMinifyEnabled = false
-      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("release")
-    }
+      release {
+        isCrunchPngs = true
+        isMinifyEnabled = true
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        signingConfig = signingConfigs.getByName("release")
+      }
     debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
   compileOptions {
@@ -85,6 +85,7 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
+  implementation("androidx.security:security-crypto:1.1.0-alpha06")
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
