@@ -1,0 +1,6 @@
+{
+  "name": "GündemAI",
+  "description": "Yapay zekâ destekli kişisel gündem asistanınız. Gündemi takip etme, gündem seni bulsun.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
