@@ -20,7 +20,115 @@ class GeminiService {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    suspend fun askGundemAI(prompt: String, contextStories: List<Story>): String = withContext(Dispatchers.IO) {
+    suspend fun checkClusteringMatch(newTitle: String, newDesc: String, recentStories: List<StoryEntity>): String? = withContext(Dispatchers.IO) {
+        if (apiKey.isEmpty() || apiKey.contains("placeholder")) return@withContext null
+        
+        try {
+            val listText = recentStories.joinToString("\n") { "ID: ${it.id} | TITLE: ${it.title}" }
+            val prompt = """
+                Aşağıdaki yeni haber, listedeki eski haberlerden birinin doğrudan devamı, güncellemesi veya aynı olay örgüsüne aitse o haberin ID'sini döndür. 
+                Eğer yepyeni, tamamen farklı bir olaysa "NONE" yaz. 
+                SADECE "ID" VEYA "NONE" DÖNDÜR, BAŞKA METİN YAZMA.
+                
+                YENİ HABER:
+                Başlık: $newTitle
+                Açıklama: $newDesc
+                
+                SON 24 SAATİN HABERLERİ:
+                $listText
+            """.trimIndent()
+            
+            val jsonBody = JSONObject().apply {
+                put("contents", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("text", prompt)
+                            })
+                        })
+                    })
+                })
+            }
+            
+            val request = Request.Builder()
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+                .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+                
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string()
+                if (response.isSuccessful && body != null) {
+                    val resultJson = JSONObject(body)
+                    val text = resultJson.optJSONArray("candidates")
+                        ?.optJSONObject(0)
+                        ?.optJSONObject("content")
+                        ?.optJSONArray("parts")
+                        ?.optJSONObject(0)
+                        ?.optString("text")?.trim() ?: "NONE"
+                        
+                    if (text != "NONE" && recentStories.any { it.id == text }) {
+                        return@withContext text
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GeminiService", "Cluster match error", e)
+        }
+        return@withContext null
+    }
+
+    suspend fun generateTimelineSummary(oldSummary: String, newTitle: String, newDesc: String): String = withContext(Dispatchers.IO) {
+        if (apiKey.isEmpty() || apiKey.contains("placeholder")) return@withContext "$oldSummary\nSon Gelişme: $newTitle"
+        
+        try {
+            val prompt = """
+                Bir haber olayının eski özeti ile en son gelişmesini birleştirip, akıcı, tek paragraflık ve sürükleyici bir GündemAI özeti yaz.
+                En fazla 3-4 cümle olsun. Dili profesyonel Türkçe olsun.
+                
+                ESKİ ÖZET: $oldSummary
+                YENİ GELİŞME: $newTitle - $newDesc
+            """.trimIndent()
+            
+            val jsonBody = JSONObject().apply {
+                put("contents", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("text", prompt)
+                            })
+                        })
+                    })
+                })
+            }
+            
+            val request = Request.Builder()
+                .url("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey")
+                .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+                
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string()
+                if (response.isSuccessful && body != null) {
+                    val resultJson = JSONObject(body)
+                    val text = resultJson.optJSONArray("candidates")
+                        ?.optJSONObject(0)
+                        ?.optJSONObject("content")
+                        ?.optJSONArray("parts")
+                        ?.optJSONObject(0)
+                        ?.optString("text")?.trim()
+                        
+                    if (text != null && text.isNotEmpty()) {
+                        return@withContext text
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GeminiService", "Summary error", e)
+        }
+        return@withContext "$oldSummary\nSon Gelişme: $newTitle"
+    }
+
+    suspend fun askQuestion(prompt: String, contextStories: List<Story>): ChatResponse = withContext(Dispatchers.IO) {
         val apiKey = try {
             BuildConfig.GEMINI_API_KEY
         } catch (e: Exception) {
