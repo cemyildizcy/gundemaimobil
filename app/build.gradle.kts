@@ -10,13 +10,13 @@ plugins {
 }
 
 android {
-  namespace = "com.aistudio.gundemai.vkyzq"
-    compileSdk = 34
+    namespace = "com.aistudio.gundemai.vkyzq"
+    compileSdk = 36
 
     defaultConfig {
-      applicationId = "com.aistudio.gundemai.vkyzq"
-      minSdk = 24
-      targetSdk = 34
+        applicationId = "com.aistudio.gundemai.vkyzq"
+        minSdk = 26
+        targetSdk = 35
     versionCode = 1
     versionName = "1.0"
 
