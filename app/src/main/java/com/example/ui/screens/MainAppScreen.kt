@@ -1005,45 +1005,49 @@ fun NotificationsTab(viewModel: MainViewModel, onStoryClick: (String) -> Unit) {
                             .fillMaxWidth()
                             .clickable {
                                 viewModel.markNotificationAsRead(notif.id)
-                                if (notif.storyId != null) {
-                                    onStoryClick(notif.storyId)
+                                if (notif.actionUrl != null) {
+                                    onStoryClick(notif.actionUrl)
                                 } else {
                                     Toast
-                                        .makeText(context, notif.description, Toast.LENGTH_LONG)
+                                        .makeText(context, notif.body, Toast.LENGTH_LONG)
                                         .show()
                                 }
                             }
                             .testTag("notification_card_${notif.id}")
                     ) {
                         Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Unread indicator dot
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(if (notif.isRead) Color.Transparent else MaterialTheme.colorScheme.primary)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = notif.title,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (notif.isRead) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Unread indicator dot
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(if (notif.isRead) Color.Transparent else MaterialTheme.colorScheme.primary)
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = notif.description,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 16.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = notif.timestamp, fontSize = 10.sp, color = SoftGray)
-                            }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = notif.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (notif.isRead) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = notif.body,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 16.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(notif.timestamp)),
+                                        fontSize = 10.sp,
+                                        color = SoftGray
+                                    )
+                                }
                         }
                     }
                 }

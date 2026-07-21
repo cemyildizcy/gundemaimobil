@@ -24,12 +24,12 @@ data class FollowedPackageEntity(@PrimaryKey val id: String)
 @Entity(tableName = "notifications")
 data class NotificationEntity(
     @PrimaryKey val id: String,
-    val type: String, // "AI_SUMMARY", "BREAKING", "TOPIC_UPDATE"
+    val type: String,
     val title: String,
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
-    val actionUrl: String? = null // Yönlendirilecek storyId
+    val actionUrl: String? = null
 )
 
 @Entity(tableName = "stories")
@@ -38,10 +38,10 @@ data class StoryEntity(
     val title: String,
     val summary: String,
     val originalTitle: String,
-    val eventHash: String, // clustering id
-    val category: String, // "Yapay Zekâ", "Türkiye" vs
-    val importance: String, // CRITICAL, HIGH, MEDIUM, LOW
-    val status: String, // VERIFIED, MULTIPLE_SOURCES
+    val eventHash: String,
+    val category: String,
+    val importance: String,
+    val status: String,
     val url: String,
     val sourceName: String,
     val timestamp: Long,
@@ -52,7 +52,7 @@ data class StoryEntity(
 data class StoryTimelineEntity(
     @PrimaryKey val id: String,
     val storyId: String,
-    val time: String, // Örn: "10:30" veya timestamp
+    val time: String,
     val description: String,
     val sourceName: String
 )
@@ -78,15 +78,25 @@ data class Story(
     val status: VerificationStatus,
     val title: String,
     val summary: String,
-    val imageUrl: String,
-    val sourcesCount: Int,
-    val lastTimestamp: String,
+    val contentWhat: String = "",
+    val contentWhy: String = "",
+    val aiComment: String = "",
+    val consensusPoints: List<String> = emptyList(),
+    val unresolvedPoints: List<String> = emptyList(),
+    val coverUrl: String = "",
+    val firstTimestamp: String = "", 
+    val imageUrl: String? = null,
+    val relatedSourceIds: List<String> = emptyList(),
+    val sourcesCount: Int = 0,
+    val lastTimestamp: String = "",
     val isSaved: Boolean = false,
-    val isBookmarked: Boolean = false, // Alias
+    val isBookmarked: Boolean = false,
     val timeline: List<StoryTimelineItem> = emptyList(),
     val isExpanded: Boolean = false,
     val relatedTopics: List<String> = emptyList(),
-    val enrichedSources: List<StorySourceRelation> = emptyList()
+    val enrichedSources: List<StorySourceRelation> = emptyList(),
+    val sourceName: String = "",
+    val originalUrl: String = ""
 )
 
 data class StoryTimelineItem(
@@ -95,7 +105,8 @@ data class StoryTimelineItem(
     val time: String,
     val title: String,
     val content: String,
-    val isKeyMoment: Boolean = false
+    val isKeyMoment: Boolean = false,
+    val sourceName: String = ""
 )
 
 data class StorySourceRelation(
@@ -111,15 +122,18 @@ data class GundemPackage(
     val title: String,
     val description: String,
     val storyCount: Int,
-    val iconName: String, // e.g. "rocket_launch"
+    val iconName: String,
     val isFollowing: Boolean = false,
     val isTrending: Boolean = false,
-    val category: String
+    val category: String,
+    val sourcesCount: Int = 0,
+    val dailyVolume: String = "",
+    val followersCount: String = ""
 )
 
 data class Topic(
     val id: String,
-    val title: String,
+    val name: String,
     val iconName: String
 )
 

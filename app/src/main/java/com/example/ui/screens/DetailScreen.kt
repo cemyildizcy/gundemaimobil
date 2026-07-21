@@ -60,8 +60,8 @@ fun DetailScreen(
 
     // Use actual enriched timeline/sources if available, otherwise fallback
     val timeline = remember(storyId, story) {
-        if (story != null && story.enrichedTimeline.isNotEmpty()) {
-            story.enrichedTimeline
+        if (story != null && story.timeline.isNotEmpty()) {
+            story.timeline
         } else {
             story?.let { s -> generateDynamicTimeline(s) } ?: emptyList()
         }

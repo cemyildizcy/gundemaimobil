@@ -16,7 +16,10 @@ data class ChatMessage(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val dao = db.dao()
+    private val storyDao = db.storyDao()
+    private val sourceDao = db.sourceDao()
+    private val packageDao = db.packageDao()
+    private val notificationDao = db.notificationDao()
     private val prefsManager = PreferencesManager(application)
     private val geminiService = GeminiService()
 
@@ -24,16 +27,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val preferences: StateFlow<UserPreferences> = prefsManager.preferencesFlow
 
     // DB state observers
-    private val savedStoryIds = dao.getSavedStories().map { list -> list.map { it.id }.toSet() }
+    private val savedStoryIds = storyDao.getSavedStories().map { list -> list.map { it.id }.toSet() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
-    private val followedSourceIds = dao.getFollowedSources().map { list -> list.map { it.id }.toSet() }
+    private val followedSourceIds = sourceDao.getFollowedSources().map { list -> list.map { it.id }.toSet() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
-    private val followedPackageIds = dao.getFollowedPackages().map { list -> list.map { it.id }.toSet() }
+    private val followedPackageIds = packageDao.getFollowedPackages().map { list -> list.map { it.id }.toSet() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet<String>())
 
-    val notifications: StateFlow<List<NotificationEntity>> = dao.getNotifications()
+    val notifications: StateFlow<List<NotificationEntity>> = notificationDao.getNotifications()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     // UI filters
@@ -116,26 +119,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         NotificationEntity(
                             id = "notif_live_${story.id}",
                             title = if (story.importance == ImportanceLevel.CRITICAL) "Kritik Gelişme 🚨" else "Önemli Gelişme 📌",
-                            description = story.title,
+                            body = story.title,
                             type = story.importance.name,
-                            timestamp = story.firstTimestamp,
+                            timestamp = System.currentTimeMillis(),
                             isRead = false,
-                            storyId = story.id
+                            actionUrl = story.id
                         )
                     }
-                    dao.insertNotifications(newNotifs)
+                    notificationDao.insertNotifications(newNotifs)
                 } else {
                     // Fallback to general notification if no critical stories yet
                     val welcomeNotif = NotificationEntity(
                         id = "notif_welcome",
                         title = "Gündem Başladı! ⚡",
-                        description = "Gelişmiş GündemAI ile gerçek zamanlı haber akışı ve analizler tamamen hazır.",
+                        body = "Gelişmiş GündemAI ile gerçek zamanlı haber akışı ve analizler tamamen hazır.",
                         type = "INFO",
-                        timestamp = "Az önce",
+                        timestamp = System.currentTimeMillis(),
                         isRead = false,
-                        storyId = null
+                        actionUrl = null
                     )
-                    dao.insertNotifications(listOf(welcomeNotif))
+                    notificationDao.insertNotifications(listOf(welcomeNotif))
                 }
             } catch (e: Exception) {
                 android.util.Log.e("MainViewModel", "Error refreshing live news: ${e.message}")
@@ -164,24 +167,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         unresolvedPoints = result.unresolvedPoints,
                         importance = result.importance,
                         status = result.status,
-                        enrichedTimeline = result.timeline.mapIndexed { index, t ->
+                        timeline = result.timeline.mapIndexed { index, t ->
                             com.example.data.StoryTimelineItem(
                                 id = "tl_${storyId}_$index",
                                 storyId = storyId,
-                                timestamp = t.time,
-                                eventDescription = t.description,
-                                sourceId = t.sourceName
+                                time = t.time,
+                                title = t.description,
+                                content = t.description,
+                                sourceName = t.sourceName
                             )
                         },
-                        enrichedSources = result.sources.map { s ->
-                            com.example.data.StorySourceRelation(
-                                storyId = storyId,
-                                sourceId = s.name,
-                                postSnippet = s.snippet,
-                                timestamp = result.timeline.lastOrNull()?.time ?: baseStory.lastTimestamp,
-                                originalUrl = s.url
-                            )
-                        }
+                        enrichedSources = emptyList()
                     )
                     _enrichedStories.value = _enrichedStories.value + (storyId to enrichedStory)
                 }
@@ -269,15 +265,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Reset prefs
             prefsManager.resetData()
             // Reset DB tables for complete fresh restart
-            val savedList = dao.getSavedStoriesList()
-            savedList.forEach { dao.unsaveStory(it.id) }
-            val sourceList = dao.getFollowedSourcesList()
-            sourceList.forEach { dao.unfollowSource(it.id) }
-            val pkgList = dao.getFollowedPackagesList()
-            pkgList.forEach { dao.unfollowPackage(it.id) }
+            storyDao.clearSavedStories()
+            sourceDao.clearFollowedSources()
+            packageDao.clearFollowedPackages()
             
             // Reinsert notifications
-            dao.insertNotifications(MockData.notifications)
+            notificationDao.clearAllNotifications()
             
             // Clear chat
             _chatHistory.value = listOf(
@@ -295,7 +288,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val response = geminiService.askGundemAI(text, stories.value)
+                val response = geminiService.askQuestion(text, stories.value)
                 val aiMsg = ChatMessage("AI", response)
                 _chatHistory.value = _chatHistory.value + aiMsg
             } catch (e: Exception) {

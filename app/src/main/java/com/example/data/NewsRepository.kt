@@ -1,6 +1,7 @@
 package com.example.data
 
 import android.util.Log
+import com.aistudio.gundemai.vkyzq.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -82,7 +83,7 @@ class NewsRepository(
                     val newSummary = geminiService.generateTimelineSummary(existing.summary, raw.title, raw.description)
                     
                     val updated = existing.copy(
-                        lastTimestamp = now,
+                        timestamp = now,
                         summary = newSummary
                     )
                     storyDao.updateStory(updated)
@@ -90,10 +91,9 @@ class NewsRepository(
                     val timeline = StoryTimelineEntity(
                         id = UUID.randomUUID().toString().take(10),
                         storyId = existing.id,
-                        timestampStr = java.text.SimpleDateFormat("HH:mm").format(java.util.Date(now)),
-                        eventDescription = raw.title,
-                        sourceId = raw.sourceName,
-                        epochTime = now
+                        time = java.text.SimpleDateFormat("HH:mm").format(java.util.Date(now)),
+                        description = raw.title,
+                        sourceName = raw.sourceName
                     )
                     timelineDao.insertTimeline(timeline)
                 }
@@ -107,17 +107,11 @@ class NewsRepository(
                     status = "VERIFIED",
                     title = raw.title,
                     summary = raw.description.take(200),
-                    contentWhat = raw.title,
-                    contentWhy = raw.description,
-                    aiComment = "AI Analizi Bekleniyor...",
-                    consensusPoints = "[\"${raw.sourceName} bildirdi.\"]",
-                    unresolvedPoints = "[]",
-                    coverUrl = "https://images.unsplash.com/photo-1495020689067-958852a6565d?q=80&w=600",
-                    firstTimestamp = java.text.SimpleDateFormat("dd MMM, HH:mm").format(java.util.Date(now)),
-                    lastTimestamp = now,
-                    sourcesCount = 1,
+                    originalTitle = raw.title,
+                    eventHash = "hash_${newId}",
+                    url = raw.url,
                     sourceName = raw.sourceName,
-                    originalUrl = raw.url
+                    timestamp = now
                 )
                 storyDao.insertStory(newStory)
             }
